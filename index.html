@@ -9,9 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&family=LXGW+WenKai+TC:wght@300;400&display=swap" rel="stylesheet">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
     
     <style>
         /* 初始載入層：蓋滿全螢幕，層級最高 */
@@ -33,7 +32,6 @@
             transition: opacity 2s;
         }
 
-        /* ===== 新增：進度條樣式 ===== */
         .progress-bar-bg {
             position: absolute; bottom: 15%; width: 45%; max-width: 140px;
             height: 2px; background: rgba(128,128,128,0.2); border-radius: 2px;
@@ -110,7 +108,6 @@
             letter-spacing: 0.1em; backdrop-filter: blur(5px);
         }
 
-        /* ===== 左下角靜音按鈕 ===== */
         .mute-control {
             position: fixed; 
             bottom: 25px;
@@ -119,8 +116,8 @@
             height: 40px;
             border-radius: 50%;
             border: 0.5px solid var(--btn-border);
-            background: rgba(200, 200, 200, 0.3);
-            color: var(--text-main);
+            background: rgba(200, 200, 200, 0.3); 
+            color: var(--text-main); 
             font-size: 1.1rem;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -139,7 +136,6 @@
         .header h1 { font-family: 'Montserrat', sans-serif; font-size: 1.4rem; font-weight: 300; letter-spacing: 0.6em; margin: 0; text-indent: 0.6em; }
         .header p { font-size: 0.8rem; letter-spacing: 0.2em; color: var(--text-sub); margin-top: 10px; font-weight: 300; }
 
-        /* 新的水印位置：位於副標題與卡片之間 */
         .watermark-inline {
             font-family: 'Montserrat', sans-serif;
             font-size: 0.65rem;
@@ -162,12 +158,11 @@
             padding-top: 1vh; padding-bottom: 3vh; 
         }
 
-        /* ===== 優化：自適應卡片高度 ===== */
         .card {
             width: 100%; 
-            min-height: 480px; /* 給予基本支撐高度 */
-            height: auto;      /* 讓內容自由推伸 */
-            max-height: 75vh;  /* 確保小螢幕下不會過長 */
+            min-height: 480px;
+            height: auto;
+            max-height: 75vh;
             background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             border-radius: 24px; border: 0.5px solid var(--card-border);
             box-shadow: 0 25px 70px rgba(0,0,0,0.06); 
@@ -216,11 +211,10 @@
             transition: opacity 0.8s ease-out, transform 0.8s ease-out; 
         }
 
-        /* ===== 優化：歌詞區塊彈性預留空間 ===== */
         .lyrics-wrapper { 
             position: relative; width: 100%; 
-            padding: 4vh 0; /* 使用 vh 動態預留上下空間 */
-            flex: 1;        /* 吸收剩餘空間，讓排版自動置中 */
+            padding: 4vh 0;
+            flex: 1;
             display: flex; align-items: center; justify-content: center; min-height: 140px; 
         }
         .quote-mark { font-family: 'LXGW WenKai TC', sans-serif; font-size: 1.4rem; color: var(--accent-glow); position: absolute; line-height: 1; font-weight: 300; }
@@ -324,14 +318,13 @@
         const themeBtn = document.getElementById('theme-btn');
         let particles = []; let ripples = []; let isDark = false;
 
-        // ===== Loading 進度條控制器 =====
         let initProgressValue = 10;
         const progressFill = document.getElementById('init-progress');
         function updateProgress(val) {
             initProgressValue = Math.max(initProgressValue, val);
             if (progressFill) progressFill.style.width = initProgressValue + '%';
         }
-        updateProgress(10); // 初始給予 10%
+        updateProgress(10); 
 
         class Particle {
             constructor() { this.init(); }
@@ -443,7 +436,6 @@
         
         let current = null;
 
-        // ===== 獨立的歌詞抽取邏輯 =====
         function rollNextLyric() {
             current = lyricsDB[Math.floor(Math.random()*lyricsDB.length)];
             const charCount = current.t.replace(/<br>/g, '').length;
@@ -469,7 +461,7 @@
             }
         }
         
-        // 進入頁面時馬上抽取第一首歌，確保 Youtube API 啟動時就有資料可以預載
+        // 先抽出第一首歌
         rollNextLyric();
 
         // ===== Youtube 控制器相關變數與函數 =====
@@ -478,17 +470,18 @@
         let isMuted = false;
         let fadeInterval;
 
-        function onYouTubeIframeAPIReady() {
-            updateProgress(60); // API 核心加載完成
+        // 優化：確保此全域函數定義在載入 API 之前
+        window.onYouTubeIframeAPIReady = function() {
+            updateProgress(60); 
             player = new YT.Player('yt-player', {
                 height: '0',
                 width: '0',
-                videoId: '',
+                // 重要修復：videoId 不能是空字串，我們塞入剛剛抽出的 ytId
+                videoId: current ? current.ytId : 'Pd6Vxw5ZmKA', 
                 playerVars: { 'autoplay': 0, 'controls': 0, 'playsinline': 1 },
                 events: {
                     'onReady': (event) => { 
                         isPlayerReady = true; 
-                        // ===== 優化：強制預設靜音，徹底解決首次進入爆音的問題 =====
                         player.setVolume(0); 
                         
                         if(current && current.ytId) {
@@ -496,12 +489,24 @@
                         }
                         
                         playerReadyStatus = true;
-                        updateProgress(90); // 影片準備完成
+                        updateProgress(90); 
+                        checkOverallReady();
+                    },
+                    // 加入錯誤處理，以防某首歌版權禁止嵌入而卡死載入
+                    'onError': (event) => {
+                        console.warn("Youtube Player Error:", event.data);
+                        playerReadyStatus = true; // 放行
                         checkOverallReady();
                     }
                 }
             });
-        }
+        };
+
+        // 動態且非同步載入 YouTube Iframe API (推薦做法)
+        const ytScriptTag = document.createElement('script');
+        ytScriptTag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
 
         function fadeAudioIn() {
             if (!isPlayerReady || isMuted) return;
@@ -547,7 +552,6 @@
                 }
             }
         });
-
 
         function triggerHaptic() { if ("vibrate" in navigator) navigator.vibrate(15); }
 
@@ -657,7 +661,7 @@
                     document.body.classList.add('fonts-ready');
                     const loader = document.getElementById('initial-loader');
                     setTimeout(() => { loader.style.display = 'none'; }, 2000);
-                }, 400); // 稍等 0.4 秒讓進度條跑滿畫面再解鎖
+                }, 400); 
             }
         }
 
@@ -680,11 +684,11 @@
 
         waitForFonts().then(() => {
             fontsReadyStatus = true;
-            updateProgress(50); // 字體載入完成
+            updateProgress(50); 
             checkOverallReady();
         });
 
-        // 建立超時安全機制 (若 7 秒後仍未完成載入，強行進入主畫面，避免卡死)
+        // 縮短超時安全機制至 4.5 秒 (若網路異常強行解鎖)
         setTimeout(() => {
             if (!fontsReadyStatus || !playerReadyStatus) {
                 fontsReadyStatus = true;
@@ -692,7 +696,7 @@
                 updateProgress(100);
                 checkOverallReady();
             }
-        }, 7000);
+        }, 4500);
 
     </script>
 </body>
