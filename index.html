@@ -143,10 +143,11 @@
             font-size: 0.65rem;
             letter-spacing: 0.5em;
             text-indent: 0.5em;
-            position: absolute;
+            text-align: center;
+            margin-top: -1vh;
             left: 50%;
+            margin-bottom: 2vh;
             transform: translateX(-50%);
-            bottom: -1.5vh; 
             white-space: nowrap;
             transition: color 0.8s ease;
             opacity: 0.5;
@@ -162,9 +163,9 @@
 
         .card {
             width: 100%; 
-            min-height: 480px;
+            min-height: 50vh;
             height: auto;
-            max-height: 75vh;
+            max-height: 80vh;
             background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             border-radius: 24px; border: 0.5px solid var(--card-border);
             box-shadow: 0 25px 70px rgba(0,0,0,0.06); 
@@ -215,7 +216,7 @@
 
         .lyrics-wrapper { 
             position: relative; width: 100%; 
-            padding: 50px 0; margin: 10px 0;
+            padding: 5vh 0; margin: 0;
             flex: 1;
             display: flex; align-items: center; justify-content: center; 
         }
@@ -442,6 +443,7 @@
         
         let current = null;
 
+        // 1. 先將抽取邏輯定義好
         function rollNextLyric() {
             current = lyricsDB[Math.floor(Math.random()*lyricsDB.length)];
             const charCount = current.t.replace(/<br>/g, '').length;
@@ -466,8 +468,9 @@
                 player.cueVideoById({videoId: current.ytId, startSeconds: current.start});
             }
         }
-        
-        
+
+        // 2. 關鍵修復：在 YouTube API 載入前，就先抽出第一首歌！
+        rollNextLyric();
 
         // ===== Youtube 控制器相關變數與函數 =====
         let player;
@@ -475,56 +478,39 @@
         let isMuted = false;
         let fadeInterval;
 
-        // 2. 強化版預加載邏輯
-let loadedSongsCount = 0;
-const preloadTargets = lyricsDB.slice(0, 3); // 預連前三首
-
-function updateProgress(val) {
-    const fill = document.getElementById('init-progress');
-    fill.style.width = val + '%';
-    if(val >= 100) {
-        setTimeout(() => document.body.classList.add('ready'), 800);
-    }
-}
-
-// 3秒後背景粒子漸入
-setTimeout(() => {
-    canvas.style.opacity = "1";
-}, 3000);
-        
-        // 優化：確保此全域函數定義在載入 API 之前
         window.onYouTubeIframeAPIReady = function() {
             updateProgress(40); 
             player = new YT.Player('yt-player', {
                 height: '0',
                 width: '0',
-                // 重要修復：videoId 不能是空字串，我們塞入剛剛抽出的 ytId
-                videoId: preloadTargets[0].ytId, // 先連第一首 
+                // 3. 關鍵修復：直接載入剛剛抽好的 current.ytId
+                videoId: current.ytId, 
                 playerVars: { 'autoplay': 0, 'controls': 0, 'playsinline': 1 },
                 events: {
                     'onReady': (event) => { 
                         isPlayerReady = true; 
                         player.setVolume(0);
+                        
+                        // 設定初始播放起點
+                        player.seekTo(current.start, true);
+
                         let p = 40;
-                const interval = setInterval(() => {
-                    p += 20;
-                    updateProgress(p);
-                    if(p >= 100) clearInterval(interval);
-                }, 800);
+                        const interval = setInterval(() => {
+                            p += 20;
+                            updateProgress(p);
+                            if(p >= 100) clearInterval(interval);
+                        }, 800);
                         
-                        if(current && current.ytId) {
-                            player.cueVideoById({videoId: current.ytId, startSeconds: current.start});
-                        }
-                        
-                        playerReadyStatus = true;
-                        updateProgress(90); 
-                        checkOverallReady();
+                        // 移除這裡多餘的 cueVideoById，因為我們已經在 videoId 裡放對了歌
                     },
-                    // 加入錯誤處理，以防某首歌版權禁止嵌入而卡死載入
                     'onError': (event) => {
                         console.warn("Youtube Player Error:", event.data);
-                        playerReadyStatus = true; // 放行
-                        checkOverallReady();
+                        let p = 40;
+                        const interval = setInterval(() => {
+                            p += 20;
+                            updateProgress(p);
+                            if(p >= 100) clearInterval(interval);
+                        }, 800);
                     }
                 }
             });
@@ -588,7 +574,6 @@ setTimeout(() => {
             if (card.classList.contains('revealed')) return;
             triggerHaptic();
             
-            if (!current) rollNextLyric();
             card.classList.add('revealed');
             fadeAudioIn();
         });
